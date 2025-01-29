@@ -1,0 +1,9 @@
+#Repo from https://github.com/facebookresearch/TimeSformer
+torchvision
+simplejson
+einops
+timm
+psutil
+scikit-learn
+opencv-python
+tensorboard
