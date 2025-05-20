@@ -12,11 +12,35 @@ import numpy as np
 # Script for validation TimeSformer on toy example
 # Show predicted gif frames in comparison with real data
 
+
 def mae(prediction, target):
+    """
+    Calculates the Mean Absolute Error.
+
+        Args:
+            prediction: The predicted values.
+            target: The true values.
+
+        Returns:
+            float: The mean absolute error between prediction and target.
+    """
     return float(np.mean(abs(prediction - target)))
 
 
 def embed_dim_by_img(img, num_heads, emb_mult):
+    """
+    Calculates the embedding dimension based on image size and other factors.
+
+        Adjusts the embedding dimension to be divisible by the number of heads.
+
+        Args:
+            img: The size of the input image.
+            num_heads: The number of attention heads.
+            emb_mult: A multiplier for the embedding dimension.
+
+        Returns:
+            int: The calculated embedding dimension, adjusted to be divisible by num_heads.
+    """
     emb_dim = img * emb_mult
     head_det = emb_dim % num_heads
     if head_det != 0:
@@ -25,7 +49,21 @@ def embed_dim_by_img(img, num_heads, emb_mult):
 
 
 def count_patch_size(imgsize):
-    patch = imgsize ** 0.5
+    """
+    Calculates the optimal patch size for an image given its total size.
+
+        The method determines the largest integer that evenly divides the image size,
+        suitable for creating patches without remainder. It starts with the square root
+        of the image size and iteratively decreases until a divisor is found.
+
+        Args:
+            imgsize: The total number of pixels in the image (e.g., width * height).
+
+        Returns:
+            int: The calculated patch size, which is an integer representing the side length
+                 of square patches that can perfectly tile the image.
+    """
+    patch = imgsize**0.5
     if imgsize % patch == 0:
         return patch
     else:
@@ -40,10 +78,11 @@ train_data = get_cycled_data(data, 5)[:, :, :, 0]
 test_data = get_cycled_data(data, 4)[:, :, :, 0]
 img_sizes = (train_data.shape[1], train_data.shape[2])
 
-test_dataset = multi_output_tensor(data=test_data,
-                                   pre_history_len=20,
-                                   forecast_len=10,
-                                   )
+test_dataset = multi_output_tensor(
+    data=test_data,
+    pre_history_len=20,
+    forecast_len=10,
+)
 dataloader_test = DataLoader(test_dataset, batch_size=2, shuffle=False)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -66,14 +105,25 @@ embed_dim = embed_dim_by_img(img_sizes[1], num_heads, emb_mult)
 dropout = 0.1
 attn_drop_rate = 0.1
 
-model = TimeSformer(batch_size=batch_size, output_size=[img_sizes[0], img_sizes[1]], img_size=img_sizes[0],
-                    embed_dim=embed_dim,
-                    num_frames=4, attention_type='divided_space_time', pretrained_model=False, in_chans=1,
-                    out_chans=predict_period,
-                    patch_size=patch_size, num_heads=num_heads, in_periods=in_period, depth=depth,
-                    emb_mult=emb_mult,
-                    attn_drop_rate=attn_drop_rate, dropout=dropout).to(device)
-model.load_state_dict(torch.load('anime_weights_2.pt'))
+model = TimeSformer(
+    batch_size=batch_size,
+    output_size=[img_sizes[0], img_sizes[1]],
+    img_size=img_sizes[0],
+    embed_dim=embed_dim,
+    num_frames=4,
+    attention_type="divided_space_time",
+    pretrained_model=False,
+    in_chans=1,
+    out_chans=predict_period,
+    patch_size=patch_size,
+    num_heads=num_heads,
+    in_periods=in_period,
+    depth=depth,
+    emb_mult=emb_mult,
+    attn_drop_rate=attn_drop_rate,
+    dropout=dropout,
+).to(device)
+model.load_state_dict(torch.load("anime_weights_2.pt"))
 
 loss_l1 = torch.nn.L1Loss()
 for X, y in dataloader_test:
@@ -97,22 +147,22 @@ for X, y in dataloader_test:
         ssim_list.append(ssim(prediction[i], real[i], data_range=1))
         mae_list.append(mae(prediction[i], real[i]))
 
-        axs[1, i].imshow(prediction[i], cmap='Greys_r', vmax=1, vmin=0)
-        axs[1, i].set_title(F'Frame {i}')
-        axs[0, i].imshow(real[i], cmap='Greys_r', vmax=1, vmin=0)
-        axs[0, i].set_title(F'Frame {i}')
+        axs[1, i].imshow(prediction[i], cmap="Greys_r", vmax=1, vmin=0)
+        axs[1, i].set_title(f"Frame {i}")
+        axs[0, i].imshow(real[i], cmap="Greys_r", vmax=1, vmin=0)
+        axs[0, i].set_title(f"Frame {i}")
         axs[0, i].set_xticks([])
         axs[1, i].set_xticks([])
         axs[0, i].set_yticks([])
         axs[1, i].set_yticks([])
-    plt.suptitle(f'MAE={round(loss.item(), 3)}, SSIM={round(np.mean(ssim_list), 3)}')
+    plt.suptitle(f"MAE={round(loss.item(), 3)}, SSIM={round(np.mean(ssim_list), 3)}")
 
     plt.tight_layout()
     plt.show()
 
     df = pd.DataFrame()
-    df['mae'] = mae_list
-    df['ssim'] = ssim_list
-    df.to_csv('anime_metrics_dist.csv', index=False)
+    df["mae"] = mae_list
+    df["ssim"] = ssim_list
+    df.to_csv("anime_metrics_dist.csv", index=False)
 
     break

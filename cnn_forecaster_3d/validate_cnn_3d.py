@@ -21,60 +21,146 @@ from cnn_forecaster_2d.visualizator import plot_comparison_map, full_name
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f'Calculating on device: {device}')
+print(f"Calculating on device: {device}")
 
 
 def get_prehistory(start_date, sea_name, pre_history_size, data_freq=7):
-    prehistory_dates = pd.date_range(start_date - relativedelta(days=(pre_history_size * data_freq)),
-                                     start_date,
-                                     freq=f'{data_freq}D')[-pre_history_size:]
-    datamodule_path = '/path_to_data//OSISAF'
-    files_path = f'{datamodule_path}/{sea_name}'
+    """
+    Retrieves historical data for a given sea region.
+
+        This method loads numpy arrays (.npy files) representing data for a specified
+        sea name from a predefined path, covering a period leading up to the start date.
+
+        Args:
+            start_date: The end date of the prehistory period.
+            sea_name: The name of the sea region whose data is to be retrieved.
+            pre_history_size: The number of historical time steps to retrieve.
+            data_freq: The frequency of the data in days (default is 7).
+
+        Returns:
+            tuple: A tuple containing a NumPy array of matrices and a list of dates.
+                   The first element is a NumPy array where each row represents the
+                   matrix for a specific date, and the second element is a list of
+                   dates in 'YYYYMMDD' format corresponding to each matrix.
+    """
+    prehistory_dates = pd.date_range(
+        start_date - relativedelta(days=(pre_history_size * data_freq)),
+        start_date,
+        freq=f"{data_freq}D",
+    )[-pre_history_size:]
+    datamodule_path = "/path_to_data//OSISAF"
+    files_path = f"{datamodule_path}/{sea_name}"
     matrices = []
     dates = []
     for date in prehistory_dates:
-        file_name = date.strftime('osi_%Y%m%d.npy')
-        matrix = np.load(f'{files_path}/{file_name}').astype(float)
+        file_name = date.strftime("osi_%Y%m%d.npy")
+        matrix = np.load(f"{files_path}/{file_name}").astype(float)
         matrices.append(matrix)
-        dates.append(date.strftime('%Y%m%d'))
+        dates.append(date.strftime("%Y%m%d"))
     return np.array(matrices), dates
 
 
 def get_target(start_date, sea_name, forecast_size, data_freq=7):
-    forecast_dates = pd.date_range(start_date,
-                                   start_date + relativedelta(days=(forecast_size * data_freq)),
-                                   freq=f'{data_freq}D')[:forecast_size]
-    datamodule_path = '/path_to_data//OSISAF'
-    files_path = f'{datamodule_path}/{sea_name}'
+    """
+    Retrieves target matrices for a given sea name and date range.
+
+        This method loads numpy arrays (.npy files) representing forecast data
+        for a specified sea area over a defined period. It constructs the file paths
+        based on the start date, sea name, and forecast size, then iterates through
+        the dates to load and store the corresponding matrices.
+
+        Args:
+            start_date: The starting date for the forecast period.
+            sea_name: The name of the sea area (e.g., 'Baltic').
+            forecast_size: The number of forecasts to retrieve.
+            data_freq: The frequency of data in days (default is 7).
+
+        Returns:
+            tuple: A tuple containing a NumPy array of matrices and a list of dates
+                   in string format ('YYYYMMDD').  The array contains the loaded
+                   forecast matrices, and the list corresponds to the dates for each matrix.
+    """
+    forecast_dates = pd.date_range(
+        start_date,
+        start_date + relativedelta(days=(forecast_size * data_freq)),
+        freq=f"{data_freq}D",
+    )[:forecast_size]
+    datamodule_path = "/path_to_data//OSISAF"
+    files_path = f"{datamodule_path}/{sea_name}"
     matrices = []
     dates = []
     for date in forecast_dates:
-        file_name = date.strftime('osi_%Y%m%d.npy')
-        matrix = np.load(f'{files_path}/{file_name}').astype(float)
+        file_name = date.strftime("osi_%Y%m%d.npy")
+        matrix = np.load(f"{files_path}/{file_name}").astype(float)
         matrices.append(matrix)
-        dates.append(date.strftime('%Y%m%d'))
+        dates.append(date.strftime("%Y%m%d"))
     return np.array(matrices), dates
 
 
 def fix_range(image):
+    """
+    Clips pixel values in an image to the range [0, 1].
+
+        This function ensures that all pixel values in the input image are within the valid range of 0 to 1 (inclusive).  Values greater than 1 are set to 1, and values less than 0 are set to 0.
+
+        Args:
+            image: The input image as a NumPy array.
+
+        Returns:
+            NumPy array: The clipped image with pixel values in the range [0, 1].
+    """
     image[image > 1] = 1
     image[image < 0] = 0
     return image
 
 
 def fix_border(sea_name, image):
-    datamodule_path = '/path_to_data/'
-    mask = np.load(f'{datamodule_path}/coastline_masks/{sea_name}_mask.npy')
+    """
+    Sets pixels outside the coastline mask to zero.
+
+        This function loads a pre-computed coastline mask for a given sea name and
+        applies it to an input image, setting all pixel values outside the coastline
+        to zero.
+
+        Args:
+            sea_name: The name of the sea/region for which to apply the mask.
+            image: The input image (numpy array) to be masked.
+
+        Returns:
+            A numpy array representing the masked image.
+    """
+    datamodule_path = "/path_to_data/"
+    mask = np.load(f"{datamodule_path}/coastline_masks/{sea_name}_mask.npy")
     mask = np.repeat(np.expand_dims(mask, axis=0), image.shape[0], axis=0)
     image[mask == 0] = 0
     return image
 
 
 def mae(prediction, target):
+    """
+    Calculates the Mean Absolute Error.
+
+        Args:
+            prediction: The predicted values.
+            target: The true values.
+
+        Returns:
+            float: The mean absolute error between prediction and target.
+    """
     return np.mean(abs(prediction - target))
 
 
 def binary_accuracy(prediction, target):
+    """
+    Calculates the binary accuracy between a prediction and a target.
+
+        Args:
+            prediction: The predicted values.
+            target: The ground truth values.
+
+        Returns:
+            float: The binary accuracy score.
+    """
     prediction = deepcopy(prediction)
     target = deepcopy(target)
 
@@ -83,23 +169,37 @@ def binary_accuracy(prediction, target):
     target[target < 0.2] = 0
     target[target >= 0.2] = 1
 
-    diff = target-prediction
+    diff = target - prediction
     errors_num = len(np.where(diff == 0)[0])
-    acc = errors_num/prediction.size
+    acc = errors_num / prediction.size
     return acc
 
 
 def calculate_metrics(forecast_start_day, sea_name, plot_metric=False, plot_maps=False):
-    forecast_start_day = datetime.strptime(forecast_start_day, '%Y%m%d')
+    """
+    Calculates and returns metrics (MAE, SSIM, accuracy) for a forecast.
+
+        Args:
+            forecast_start_day: The starting date for the forecast in 'YYYYMMDD' format.
+            sea_name: The name of the sea region being forecasted.
+            plot_metric: A boolean indicating whether to plot the metrics over time. Defaults to False.
+            plot_maps: A boolean indicating whether to plot comparison maps between prediction and target. Defaults to False.
+
+        Returns:
+            A tuple containing lists of MAE, SSIM, accuracy values, and a list of dates corresponding to each metric.
+    """
+    forecast_start_day = datetime.strptime(forecast_start_day, "%Y%m%d")
     pre_history_size = 104
     forecast_size = 52
 
-    model_name = f'models/{sea_name}_{pre_history_size}_{forecast_size}_(2l_52_3_3)(19790101-20200101).pt'
+    model_name = f"models/{sea_name}_{pre_history_size}_{forecast_size}_(2l_52_3_3)(19790101-20200101).pt"
 
     features, _ = get_prehistory(forecast_start_day, sea_name, pre_history_size)
-    features = resize(features, (features.shape[0], features.shape[1] // 2, features.shape[2] // 2))
+    features = resize(
+        features, (features.shape[0], features.shape[1] // 2, features.shape[2] // 2)
+    )
     target, target_dates = get_target(forecast_start_day, sea_name, forecast_size)
-    target_dates = [datetime.strptime(d, '%Y%m%d') for d in target_dates]
+    target_dates = [datetime.strptime(d, "%Y%m%d") for d in target_dates]
 
     forecaster_params = {
         "input_size": (target.shape[1] // 2, target.shape[2] // 2),
@@ -121,7 +221,9 @@ def calculate_metrics(forecast_start_day, sea_name, plot_metric=False, plot_maps
     features = np.expand_dims(features, axis=0)
 
     prediction = model(tensor(features).float().to(device)).detach().cpu().numpy()[0]
-    prediction = resize(prediction, (prediction.shape[0], target.shape[1], target.shape[2]))
+    prediction = resize(
+        prediction, (prediction.shape[0], target.shape[1], target.shape[2])
+    )
     prediction = fix_range(prediction)
     prediction = fix_border(sea_name, prediction)
 
@@ -130,11 +232,13 @@ def calculate_metrics(forecast_start_day, sea_name, plot_metric=False, plot_maps
     acc_list = []
     for i in range(prediction.shape[0]):
 
-        matrices_path = '/path_to_save/'
-        if not os.path.exists(f'{matrices_path}/matrices/{sea_name}'):
-            os.makedirs(f'{matrices_path}/matrices/{sea_name}')
-        np.save(f'{matrices_path}/matrices/{sea_name}/{target_dates[i].strftime("%Y%m%d")}.npy', prediction[i])
-
+        matrices_path = "/path_to_save/"
+        if not os.path.exists(f"{matrices_path}/matrices/{sea_name}"):
+            os.makedirs(f"{matrices_path}/matrices/{sea_name}")
+        np.save(
+            f'{matrices_path}/matrices/{sea_name}/{target_dates[i].strftime("%Y%m%d")}.npy',
+            prediction[i],
+        )
 
         l1 = np.round(mae(prediction[i], target[i]), 4)
         l1_list.append(l1)
@@ -143,45 +247,52 @@ def calculate_metrics(forecast_start_day, sea_name, plot_metric=False, plot_maps
         acc = np.round(binary_accuracy(prediction[i], target[i]), 4)
         acc_list.append(acc)
 
-        title = (f'{full_name(sea_name)} - {target_dates[i].strftime("%Y/%m/%d")},\nMAE={l1}, SSIM={ssim_metric}, '
-                 f'accuracy={acc}')
+        title = (
+            f'{full_name(sea_name)} - {target_dates[i].strftime("%Y/%m/%d")},\nMAE={l1}, SSIM={ssim_metric}, '
+            f"accuracy={acc}"
+        )
         if plot_maps:
             plot_comparison_map(prediction[i], target[i], sea_name, title, save=True)
 
     if plot_metric:
         plt.plot(target_dates, l1_list)
-        plt.title('MAE')
+        plt.title("MAE")
         plt.show()
 
         plt.plot(target_dates, ssim_list)
-        plt.title('SSIM')
+        plt.title("SSIM")
         plt.show()
 
         plt.plot(target_dates, acc_list)
-        plt.title('Accuracy, threshold=0.2')
+        plt.title("Accuracy, threshold=0.2")
         plt.show()
 
     return l1_list, ssim_list, acc_list, target_dates
 
 
-sea_name = 'chukchi'
+sea_name = "chukchi"
 
 full_dates = []
 full_l1 = []
 full_ssim = []
 full_acc = []
-years_to_predict = ['20200101', '20210101', '20220101', '20230101']
+years_to_predict = ["20200101", "20210101", "20220101", "20230101"]
 for d in years_to_predict:
     print(d)
-    l1, ssim_val, acc, dates = calculate_metrics(d, sea_name, plot_maps=True, plot_metric=True)
+    l1, ssim_val, acc, dates = calculate_metrics(
+        d, sea_name, plot_maps=True, plot_metric=True
+    )
     full_dates.extend(dates)
     full_l1.extend(l1)
     full_ssim.extend(ssim_val)
     full_acc.extend(acc)
 
 df = pd.DataFrame()
-df['dates'] = full_dates
-df['l1'] = full_l1
-df['ssim'] = full_ssim
-df['accuracy'] = full_acc
-df.to_csv(f'results/{sea_name}_metrics({years_to_predict[0]}-{years_to_predict[- 1]}).csv', index=False)
+df["dates"] = full_dates
+df["l1"] = full_l1
+df["ssim"] = full_ssim
+df["accuracy"] = full_acc
+df.to_csv(
+    f"results/{sea_name}_metrics({years_to_predict[0]}-{years_to_predict[- 1]}).csv",
+    index=False,
+)

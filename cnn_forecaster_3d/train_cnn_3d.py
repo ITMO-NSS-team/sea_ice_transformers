@@ -16,26 +16,30 @@ from cnn_forecaster_2d.data_loader import get_timespatial_series
 pre_history_size = 104
 forecast_size = 52
 
-device = 'cuda'
+device = "cuda"
 default_lr = 1e-3
 max_epochs = 1000
 
-sea_name = 'kara'
-start_date = '19790101'
-end_date = '20200101'
+sea_name = "kara"
+start_date = "19790101"
+end_date = "20200101"
 kernel = (52, 3, 3)
 sea_data, dates = get_timespatial_series(sea_name, start_date, end_date)
 sea_data = sea_data[::7]
 dates = dates[::7]
 
-print('Data loaded')
-dataset = multi_output_tensor(data=resize(sea_data,
-                                          (sea_data.shape[0], sea_data.shape[1] // 2, sea_data.shape[2] // 2),
-                                          anti_aliasing=False),
-                              forecast_len=forecast_size,
-                              pre_history_len=pre_history_size)
+print("Data loaded")
+dataset = multi_output_tensor(
+    data=resize(
+        sea_data,
+        (sea_data.shape[0], sea_data.shape[1] // 2, sea_data.shape[2] // 2),
+        anti_aliasing=False,
+    ),
+    forecast_len=forecast_size,
+    pre_history_len=pre_history_size,
+)
 dataloader = DataLoader(dataset, batch_size=300, shuffle=False)
-print('loader created')
+print("loader created")
 
 forecaster_params = {
     "input_size": (sea_data.shape[1] // 2, sea_data.shape[2] // 2),
@@ -52,13 +56,15 @@ forecaster_params = {
 model = ForecasterBase(**forecaster_params).to(device)
 print(model)
 optimizer = optim.Adam(model.parameters(), lr=default_lr)
-scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.95, patience=10)
+scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+    optimizer, mode="min", factor=0.95, patience=10
+)
 
 criterion = nn.L1Loss()
 
 loss_history = []
 
-best_val = float('inf')
+best_val = float("inf")
 epochs_no_improve = 0
 best_model = None
 
@@ -87,7 +93,7 @@ for epoch in range(max_epochs):
     if loss < best_val:
         best_model = model
         best_val = loss
-        print('Upd model')
+        print("Upd model")
 
     print(f"-- epoch : {epoch + 1}/{max_epochs}, {loss=}, lr={scheduler.get_last_lr()}")
 
@@ -95,12 +101,15 @@ for epoch in range(max_epochs):
 
 end = time.time() - start
 
-torch.save(model.state_dict(), f'models/{sea_name}_104_52_(2l_{kernel})({start_date}-{end_date}).pt')
+torch.save(
+    model.state_dict(),
+    f"models/{sea_name}_104_52_(2l_{kernel})({start_date}-{end_date}).pt",
+)
 
 plt.plot(list(range(len(loss_history))), loss_history)
 plt.grid()
-plt.xlabel('Epoch')
-plt.ylabel(f'L1Loss')
-plt.title(f'Runtime={end}')
-plt.savefig(f'models/{sea_name}_104_52_(2l_{kernel})({start_date}-{end_date}).png')
+plt.xlabel("Epoch")
+plt.ylabel(f"L1Loss")
+plt.title(f"Runtime={end}")
+plt.savefig(f"models/{sea_name}_104_52_(2l_{kernel})({start_date}-{end_date}).png")
 plt.show()
