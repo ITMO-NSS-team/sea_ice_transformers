@@ -19,11 +19,11 @@ from cnn_forecaster_2d.data_loader import get_timespatial_series
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f'Calculating on device: {device}')
+print(f"Calculating on device: {device}")
 
-sea_name = 'kara'
-start_date = '19790101'
-end_date = '20200101'
+sea_name = "kara"
+start_date = "19790101"
+end_date = "20200101"
 sea_data, dates = get_timespatial_series(sea_name, start_date, end_date)
 sea_data = sea_data[::7]
 dates = dates[::7]
@@ -31,18 +31,24 @@ dates = dates[::7]
 pre_history_size = 104
 forecast_size = 52
 
-dataset = multi_output_tensor(data=resize(sea_data,
-                                          (sea_data.shape[0], sea_data.shape[1] // 2, sea_data.shape[2] // 2),
-                                          anti_aliasing=False),
-                              forecast_len=forecast_size,
-                              pre_history_len=pre_history_size)
+dataset = multi_output_tensor(
+    data=resize(
+        sea_data,
+        (sea_data.shape[0], sea_data.shape[1] // 2, sea_data.shape[2] // 2),
+        anti_aliasing=False,
+    ),
+    forecast_len=forecast_size,
+    pre_history_len=pre_history_size,
+)
 dataloader = DataLoader(dataset, batch_size=200, shuffle=False)
-print('Loader created')
+print("Loader created")
 
-encoder = ForecasterBase(input_size=(sea_data.shape[1] // 2, sea_data.shape[2] // 2),
-                         n_layers=5,
-                         in_time_points=pre_history_size,
-                         out_time_points=forecast_size)
+encoder = ForecasterBase(
+    input_size=(sea_data.shape[1] // 2, sea_data.shape[2] // 2),
+    n_layers=5,
+    in_time_points=pre_history_size,
+    out_time_points=forecast_size,
+)
 encoder.to(device)
 print(encoder)
 
@@ -70,7 +76,7 @@ for epoch in range(epochs):
     if loss is None:
         break
     if loss < best_loss and loss is not None:
-        print('Upd best model')
+        print("Upd best model")
         best_model = encoder
         best_loss = loss
     losses.append(loss)
@@ -78,11 +84,16 @@ for epoch in range(epochs):
     print("epoch : {}/{}, recon loss = {:.8f}".format(epoch + 1, epochs, loss))
 
 end = time.time() - start
-print(f'Runtime seconds: {end}')
-torch.save(encoder.state_dict(), f"models/{sea_name}_{pre_history_size}_{forecast_size}_l1({start_date}-{end_date}){epochs}.pt")
+print(f"Runtime seconds: {end}")
+torch.save(
+    encoder.state_dict(),
+    f"models/{sea_name}_{pre_history_size}_{forecast_size}_l1({start_date}-{end_date}){epochs}.pt",
+)
 plt.plot(np.arange(len(losses)), losses)
-plt.xlabel('Epoch')
-plt.ylabel('Loss')
-plt.title(f'Runtime={end}')
-plt.savefig(f"models/{sea_name}_{pre_history_size}_{forecast_size}_l1({start_date}-{end_date}){epochs}.png")
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+plt.title(f"Runtime={end}")
+plt.savefig(
+    f"models/{sea_name}_{pre_history_size}_{forecast_size}_l1({start_date}-{end_date}){epochs}.png"
+)
 plt.show()

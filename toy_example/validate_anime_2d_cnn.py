@@ -14,7 +14,18 @@ from skimage.metrics import structural_similarity as ssim
 # Script to show prediction of 2D CNN with loaded weights as images
 # in comparison with real data
 
+
 def mae(prediction, target):
+    """
+    Calculates the Mean Absolute Error.
+
+        Args:
+            prediction: The predicted values.
+            target: The true values.
+
+        Returns:
+            float: The mean absolute error between prediction and target.
+    """
     return float(np.mean(abs(prediction - target)))
 
 
@@ -22,21 +33,24 @@ def mae(prediction, target):
 data = get_anime_timeseries()
 test_data = get_cycled_data(data, 4)[:, :, :, 0]
 
-test_dataset = multi_output_tensor(data=test_data,
-                                   pre_history_len=20,
-                                   forecast_len=10,
-                                   )
+test_dataset = multi_output_tensor(
+    data=test_data,
+    pre_history_len=20,
+    forecast_len=10,
+)
 
 dataloader_test = DataLoader(test_dataset, batch_size=2, shuffle=False)
 
-encoder = ForecasterBase(input_size=(45, 45),
-                         n_layers=5,
-                         in_time_points=20,
-                         out_time_points=10,
-                         finish_activation_function=nn.ReLU())
-encoder.load_state_dict(torch.load('anime_weights.pt'))
+encoder = ForecasterBase(
+    input_size=(45, 45),
+    n_layers=5,
+    in_time_points=20,
+    out_time_points=10,
+    finish_activation_function=nn.ReLU(),
+)
+encoder.load_state_dict(torch.load("anime_weights.pt"))
 
-device = 'cuda'
+device = "cuda"
 encoder.to(device)
 print(encoder)
 
@@ -54,21 +68,23 @@ for X, y in dataloader_test:
         ssim_list.append(ssim(prediction[i], real[i], data_range=1))
         mae_list.append(mae(prediction[i], real[i]))
 
-        axs[1, i].imshow(prediction[i], cmap='Greys_r', vmax=1, vmin=0)
-        axs[1, i].set_title(F'Frame {i}')
-        axs[0, i].imshow(real[i], cmap='Greys_r', vmax=1, vmin=0)
-        axs[0, i].set_title(F'Frame {i}')
+        axs[1, i].imshow(prediction[i], cmap="Greys_r", vmax=1, vmin=0)
+        axs[1, i].set_title(f"Frame {i}")
+        axs[0, i].imshow(real[i], cmap="Greys_r", vmax=1, vmin=0)
+        axs[0, i].set_title(f"Frame {i}")
         axs[0, i].set_xticks([])
         axs[1, i].set_xticks([])
         axs[0, i].set_yticks([])
         axs[1, i].set_yticks([])
-    plt.suptitle(f'MAE={round(mae(prediction, real), 3)}, SSIM={round(np.mean(ssim_list), 3)}')
+    plt.suptitle(
+        f"MAE={round(mae(prediction, real), 3)}, SSIM={round(np.mean(ssim_list), 3)}"
+    )
     plt.tight_layout()
     plt.show()
 
     df = pd.DataFrame()
-    df['mae'] = mae_list
-    df['ssim'] = ssim_list
-    df.to_csv('anime_metrics_dist_2d_cnn.csv', index=False)
+    df["mae"] = mae_list
+    df["ssim"] = ssim_list
+    df.to_csv("anime_metrics_dist_2d_cnn.csv", index=False)
 
     break
