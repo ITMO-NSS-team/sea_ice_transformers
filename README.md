@@ -1,4 +1,5 @@
 # Understanding the Limitations of Deep Transformer Models for Sea Ice Forecasting - ICCS 2025
+# Towards the Limitations of Transformer Models for Metocean Forecasting - submitted to JOCS
 
 ## Content
 
@@ -56,3 +57,7 @@ TimeSformer convergence process:
 ![anime](data/timesformer_anime_convergence.gif)
 
 Convergence plots and metrics estimation are in [supplementary](Supplementary%20materials.pdf) and in the paper.
+
+## Extended version
+
+Atmosphere and ocean forecast cases are added to extend the validation to other subfields.
