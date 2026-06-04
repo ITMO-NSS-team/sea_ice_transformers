@@ -1,5 +1,5 @@
 # Understanding the Limitations of Deep Transformer Models for Sea Ice Forecasting - ICCS 2025
-# Towards the Limitations of Transformer Models for Metocean Forecasting - submitted to JOCS
+# Exploring the Limitations of Transformer Models for Metocean Forecasting - JOCS (2026)
 
 ## Content
 
@@ -61,3 +61,17 @@ Convergence plots and metrics estimation are in [supplementary](Supplementary%20
 ## Extended version
 
 Atmosphere and ocean forecast cases are added to extend the validation to other subfields.
+
+## Citation
+
+```
+@article{borisova2026exploring,
+title = {Exploring the limitations of transformer models for metocean forecasting},
+journal = {Journal of Computational Science},
+pages = {102917},
+year = {2026},
+issn = {1877-7503},
+doi = {https://doi.org/10.1016/j.jocs.2026.102917},
+author = {Julia Borisova and Mikhail Borisov and Stanislava Vostrikova and Viktor Golikov and Andrey Kuznetsov and Gleb Solovev and Alexander A. Stepanets and Mikhail Krinitskiy and Nikolay O. Nikitin}
+}
+```
